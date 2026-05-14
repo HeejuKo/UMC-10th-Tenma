@@ -1,49 +1,30 @@
-import { Request, Response } from "express";
+import { Body, Controller, Get, Path, Post, Query, Route, SuccessResponse, Tags } from "tsoa";
+import { success, ApiResponse } from "../../../common/responses/response.js";
 import { createReview, listMyReviews } from "../services/review.service.js";
 import { CreateReviewRequest } from "../dtos/review.dto.js";
 
-export const handleCreateReview = async (
-  req: Request<{}, {}, CreateReviewRequest>,
-  res: Response
-): Promise<Response> => {
-  try {
-    const result = await createReview(req.body);
+@Route("reviews")
+@Tags("Review")
+export class ReviewController extends Controller {
 
-    return res.status(201).json({
-      isSuccess: true,
-      message: "리뷰 생성 성공",
-      result,
-    });
-  } catch (err: any) {
-    console.error(err);
-    return res.status(400).json({
-      isSuccess: false,
-      message: err.message,
-    });
+  @Post()
+  @SuccessResponse("201", "Created")
+  public async createReview(
+    @Body() body: CreateReviewRequest
+  ): Promise<ApiResponse<{ reviewId: number }>> {
+    const result = await createReview(body);
+    this.setStatus(201);
+
+    return success(result);
   }
-};
 
-
-export const handleListMyReviews = async (
-  req: Request<{ userId: string }, {}, {}, { cursor?: string }>,
-  res: Response
-): Promise<Response> => {
-  try {
-    const userId = Number(req.params.userId);
-    const cursor = req.query.cursor ? Number(req.query.cursor) : undefined;
-
+  @Get("users/{userId}")
+  public async listMyReviews(
+    @Path() userId: number,
+    @Query() cursor?: number
+  ): Promise<ApiResponse<any>> {
     const result = await listMyReviews(userId, cursor);
 
-    return res.status(200).json({
-      isSuccess: true,
-      message: "내 리뷰 목록 조회 성공",
-      result,
-    });
-  } catch (err: any) {
-    console.error(err);
-    return res.status(400).json({
-      isSuccess: false,
-      message: err.message,
-    });
+    return success(result);
   }
-};
+}

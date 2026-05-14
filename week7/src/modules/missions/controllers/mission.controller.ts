@@ -1,124 +1,63 @@
-import { Request, Response } from "express";
+import { Body, Controller, Get, Path, Post, Query, Route, SuccessResponse, Tags } from "tsoa";
 import {
-  createMission,
-  challengeMission,
-  completeMission,
-  listOngoingMissions,
+  createMission as createMissionService,
+  challengeMission as challengeMissionService,
+  completeMission as completeMissionService,
+  listOngoingMissions as listOngoingMissionsService,
+  listStoreMissions as listStoreMissionsService,
 } from "../services/mission.service.js";
 import {
   CreateMissionRequest,
   ChallengeMissionRequest,
-  CompleteMissionRequest,
+  OngoingMissionListResponse,
+  StoreMissionListResponse
 } from "../dtos/mission.dto.js";
+import { success, ApiResponse } from "../../../common/responses/response.js";
 
-export const handleCreateMission = async (
-  req: Request<{}, {}, CreateMissionRequest>,
-  res: Response
-): Promise<Response> => {
-  try {
-    const result = await createMission(req.body);
+@Route("missions")
+@Tags("Mission")
+export class MissionController {
 
-    return res.status(201).json({
-      isSuccess: true,
-      message: "미션 생성 성공",
-      result,
-    });
-  } catch (err: any) {
-    return res.status(400).json({
-      isSuccess: false,
-      message: err.message,
-    });
+  @SuccessResponse("201", "미션 생성 성공")
+  @Post()
+  public async createMission(
+    @Body() body: CreateMissionRequest
+  ): Promise<ApiResponse<{ missionId: number }>> {
+    const result = await createMissionService(body);
+    return success(result);
   }
-};
 
-export const handleChallengeMission = async (
-  req: Request<{ userId: string }, {}, ChallengeMissionRequest>,
-  res: Response
-): Promise<Response> => {
-  try {
-    const userId = Number(req.params.userId);
-    const { missionId } = req.body;
-
-    const result = await challengeMission(userId, missionId);
-
-    return res.status(200).json({
-      isSuccess: true,
-      message: "미션 도전 성공",
-      result,
-    });
-  } catch (err: any) {
-    return res.status(400).json({
-      isSuccess: false,
-      message: err.message,
-    });
+  @Post("challenge/{userId}")
+  public async challengeMission(
+    @Path() userId: number,
+    @Body() body: ChallengeMissionRequest
+  ): Promise<ApiResponse<{ userMissionId: number }>> {
+    const result = await challengeMissionService(userId, body.missionId);
+    return success(result);
   }
-};
 
-export const handleCompleteMission = async (
-  req: Request<{ userId: string; userMissionId: string }, {}, CompleteMissionRequest>,
-  res: Response
-): Promise<Response> => {
-  try {
-    const userId = Number(req.params.userId);
-    const userMissionId = Number(req.params.userMissionId);
-
-    const result = await completeMission(userId, userMissionId);
-
-    return res.status(200).json({
-      isSuccess: true,
-      message: "미션 완료 성공",
-      result,
-    });
-  } catch (err: any) {
-    return res.status(400).json({
-      isSuccess: false,
-      message: err.message,
-    });
+  @Post("complete/{userId}/{userMissionId}")
+  public async completeMission(
+    @Path() userId: number,
+    @Path() userMissionId: number
+  ): Promise<ApiResponse<{ userMissionId: number; completed: boolean }>> {
+    const result = await completeMissionService(userId, userMissionId);
+    return success(result);
   }
-};
 
-export const handleListOngoingMissions = async (
-  req: Request<{ userId: string }>,
-  res: Response
-): Promise<Response> => {
-  try {
-    const userId = Number(req.params.userId);
-
-    const result = await listOngoingMissions(userId);
-
-    return res.status(200).json({
-      isSuccess: true,
-      message: "진행 중 미션 조회 성공",
-      result,
-    });
-
-  } catch (err: any) {
-    return res.status(400).json({
-      isSuccess: false,
-      message: err.message,
-    });
+  @Get("ongoing/{userId}")
+  public async listOngoingMissions(
+    @Path() userId: number
+  ): Promise<ApiResponse<OngoingMissionListResponse>> {
+    const result = await listOngoingMissionsService(userId);
+    return success(result);
   }
-};
 
-import { listStoreMissions } from "../services/mission.service.js";
-
-export const handleListStoreMissions = async (
-  req: Request<{ storeId: string }>,
-  res: Response
-): Promise<Response> => {
-  try {
-    const storeId = Number(req.params.storeId);
-    const result = await listStoreMissions(storeId);
-
-    return res.status(200).json({
-      isSuccess: true,
-      message: "가게 미션 조회 성공",
-      result,
-    });
-  } catch (err: any) {
-    return res.status(400).json({
-      isSuccess: false,
-      message: err.message,
-    });
+  @Get("store/{storeId}")
+  public async listStoreMissions(
+    @Path() storeId: number
+  ): Promise<ApiResponse<StoreMissionListResponse>> {
+    const result = await listStoreMissionsService(storeId);
+    return success(result);
   }
-};
+}

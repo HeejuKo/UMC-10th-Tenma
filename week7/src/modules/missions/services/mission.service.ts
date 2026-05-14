@@ -10,12 +10,14 @@ import {
   getMissionsByStoreId
 } from "../repositories/mission.repository.js";
 import { CreateMissionRequest } from "../dtos/mission.dto.js";
+import { StoreNotFoundError, MissionNotFoundError, MissionAlreadyChallengedError, UserMissionNotFoundError, ForbiddenMissionAccessError, MissionAlreadyCompletedError } from "../../../common/errors/error.js";
+
 
 export const createMission = async (data: CreateMissionRequest) => {
   const store = await getStoreById(data.storeId);
 
   if (!store) {
-    throw new Error("미션을 추가할 가게가 존재하지 않습니다.");
+    throw new StoreNotFoundError(data.storeId);
   }
 
   const missionId = await addMission(data);
@@ -29,13 +31,13 @@ export const challengeMission = async (
   const mission = await getMissionById(missionId);
 
   if (!mission) {
-    throw new Error("도전할 미션이 존재하지 않습니다.");
+    throw new MissionNotFoundError(missionId);
   }
 
   const existing = await getUserMissionByUserIdAndMissionId(userId, missionId);
 
   if (existing) {
-    throw new Error("이미 도전 중인 미션입니다.");
+    throw new MissionAlreadyChallengedError(missionId);
   }
 
   const userMissionId = await addUserMission(userId, missionId);
@@ -50,15 +52,15 @@ export const completeMission = async (
   const userMission = await getUserMissionById(userMissionId);
 
   if (!userMission) {
-    throw new Error("존재하지 않는 유저 미션입니다.");
+    throw new UserMissionNotFoundError(userMissionId);
   }
 
   if (userMission.userId !== userId) {
-    throw new Error("본인의 미션만 완료할 수 있습니다.");
+    throw new ForbiddenMissionAccessError(userId, userMissionId);
   }
 
   if (userMission.completed) {
-    throw new Error("이미 완료된 미션입니다.");
+    throw new MissionAlreadyCompletedError(userMissionId);
   }
 
   await completeUserMission(userMissionId);
@@ -88,7 +90,7 @@ export const listStoreMissions = async (storeId: number) => {
   const data = missions.map((m) => ({
     missionId: m.id,
     storeName: m.store.name,
-    storeCategory: m.store.category,
+    storeCategory: m.store.category.name,
     condition: m.condition,
     point: m.point,
     deadline: m.deadline,

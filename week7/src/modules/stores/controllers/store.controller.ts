@@ -1,43 +1,33 @@
-import { Request, Response } from "express";
+import { Body, Controller, Get, Path, Post, Query, Route, SuccessResponse, Tags } from "tsoa";
 import { createStore, listStoreReviews } from "../services/store.service.js";
-import { CreateStoreRequest } from "../dtos/store.dto.js";
+import { CreateStoreRequest, ReviewListResponse } from "../dtos/store.dto.js";
+import { ApiResponse, success } from "../../../common/responses/response.js";
 
-export const handleCreateStore = async (
-  req: Request<{}, {}, CreateStoreRequest>,
-  res: Response
-): Promise<Response> => {
-  try {
-    const result = await createStore(req.body);
+@Route("stores")
+@Tags("Store")
+export class StoreController extends Controller {
 
-    return res.status(201).json({
-      isSuccess: true,
-      message: "가게 생성 성공",
-      result,
-    });
-  } catch (err: any) {
-    console.error(err);
-    return res.status(400).json({
-      isSuccess: false,
-      message: err.message,
-    });
-  }
-};
+  // 가게 생성
+  @SuccessResponse("201", "Created")
+  @Post()
+  public async createStore(
+    @Body() body: CreateStoreRequest
+  ): Promise<ApiResponse<{ storeId: number }>> {
+    const result = await createStore(body);
+    this.setStatus(201);
 
-export const handleListsStoreReviews = async (
-  req: Request<{ storeId: string }>,
-  res: Response
-) => {
-  const storeId = parseInt(req.params.storeId);
-  const cursor = parseInt(req.query.cursor as string) || 0;
-
-  if (isNaN(storeId)) {
-    return res.status(400).json({ isSuccess: false, message: "유효하지 않은 storeId예요." });
+    return success(result);
   }
 
-  try {
-    const result = await listStoreReviews(storeId, cursor);
-    return res.status(200).json({ isSuccess: true, message: "리뷰 조회 성공", result });
-  } catch (err: any) {
-    return res.status(400).json({ isSuccess: false, message: err.message });
+  // 가게 리뷰 목록 조회
+  @Get("{storeId}/reviews")
+  public async listStoreReviews(
+
+    @Path() storeId: number,
+    @Query() cursor?: number
+  ): Promise<ApiResponse<ReviewListResponse>> {
+    const result = await listStoreReviews(storeId, cursor ?? 0);
+
+    return success(result);
   }
-};
+}

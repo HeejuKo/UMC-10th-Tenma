@@ -1,12 +1,10 @@
 import dotenv from "dotenv";
 import express, { Express, Request, Response, NextFunction } from "express";
+import morgan from "morgan";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import { RegisterRoutes } from "./generated/routes.js";
 import { AppError } from "./common/errors/app.error.js";
-
-import { handleCreateStore, handleListsStoreReviews } from "./modules/stores/controllers/store.controller.js";
-import { handleCreateReview, handleListMyReviews } from "./modules/reviews/controllers/review.controller.js";
-import { handleCreateMission,handleChallengeMission, handleCompleteMission, handleListOngoingMissions, handleListStoreMissions } from "./modules/missions/controllers/mission.controller.js";
 
 // 1. 환경 변수 설정
 dotenv.config();
@@ -30,6 +28,9 @@ app.use(express.static('public'));    // 정적 파일 접근
 app.use(express.json());              // request의 본문을 json으로 해석할 수 있도록 함(JSON 형태의 요청 body를 파싱하기 위함)     
 app.use(express.urlencoded({ extended: false })); // 단순 객체 문자열 형태로 본문 데이터 해석
 
+app.use(morgan("dev"));
+app.use(cookieParser());
+
 // Express.js에 생성한 엔드 포인트들을 register
 const router = express.Router();
 RegisterRoutes(router); 
@@ -49,23 +50,6 @@ app.use((err: AppError, req: Request, res: Response, next: NextFunction) => {
     data: err.data || null,
   });
 });
-
-// 4. 사용자 API
-app.get("/api/users/:userId/reviews", handleListMyReviews); // 내가 작성한 리뷰 목록 조회
-app.get("/api/users/:userId/missions", handleListOngoingMissions); // 내가 도전 중인 미션 목록 조회
-
-// 5. 가게 API
-app.post("/api/stores", handleCreateStore); // 가게 추가
-app.get("/api/stores/:storeId/reviews", handleListsStoreReviews); // 가게 리뷰 목록 조회
-app.get("/api/stores/:storeId/missions", handleListStoreMissions); // 가게 미션 목록 조회
-
-// 6. 리뷰 API
-app.post("/api/reviews", handleCreateReview); // 리뷰 작성
-
-// 7. 미션 API
-app.post("/api/missions", handleCreateMission); // 미션 추가
-app.post("/api/users/:userId/missions", handleChallengeMission); // 미션 도전
-app.patch("/api/users/:userId/missions/:userMissionId", handleCompleteMission); // 미션 성공
 
 // 8. 서버 시작
 app.listen(port, () => {
